@@ -927,6 +927,59 @@
   let pendingDraw = {
     lat: [], down: [], up: [], hasData: false,
   };
+  let dirty = true;
+
+  // Phase accumulator: the Cloudflare speedtest lib returns points only for the
+  // current measurement phase. When a second latency/bandwidth phase starts, the
+  // array shrinks back down. Archive the previous phase so the chart keeps growing.
+  const phaseAcc = {
+    lat: { base: [], current: [] },
+    down: { base: [], current: [] },
+    up: { base: [], current: [] },
+  };
+  function consumePhase(which, newArr) {
+    const st = phaseAcc[which];
+    if (!newArr || !newArr.length) return st.base.concat(st.current);
+    if (newArr.length < st.current.length) {
+      st.base = st.base.concat(st.current);
+      st.current = newArr.slice();
+    } else {
+      st.current = newArr.slice();
+    }
+    return st.base.concat(st.current);
+  }
+  function resetPhaseAcc() {
+    phaseAcc.lat = { base: [], current: [] };
+    phaseAcc.down = { base: [], current: [] };
+    phaseAcc.up = { base: [], current: [] };
+  }
+
+  // Downsample by bucketing + picking max-in-bucket. Preserves peaks.
+  function decimate(points, target = 140) {
+    if (!points || points.length <= target) return points;
+    const out = [];
+    const step = points.length / target;
+    for (let i = 0; i < target; i++) {
+      const lo = Math.floor(i * step);
+      const hi = Math.min(points.length, Math.floor((i + 1) * step));
+      if (lo >= points.length) break;
+      let bestIdx = lo, best = -Infinity;
+      for (let j = lo; j < hi; j++) {
+        const v = pv(points[j]);
+        if (isFinite(v) && v > best) { best = v; bestIdx = j; }
+      }
+      out.push(points[bestIdx]);
+    }
+    return out;
+  }
+
+  function isScaleStable() {
+    return ['lat','down','up'].every(k => {
+      const s = scale[k];
+      if (s.target === 0 && s.max === 0) return true;
+      return Math.abs(s.max - s.target) < Math.max(1, s.target * 0.005);
+    });
+  }
 
   let rafPending = false;
   function scheduleDraw() {
@@ -939,21 +992,21 @@
   }
 
   function drawAll() {
-    drawChart($('latChart'), pendingDraw.lat, {
+    drawChart($('latChart'), decimate(pendingDraw.lat), {
       stroke: '#c5672b',
       fill: 'rgba(197,103,43,0.32)',
       scaleKey: 'lat',
       minScale: 20,
       tension: 0.5,
     });
-    drawChart($('downChart'), pendingDraw.down, {
+    drawChart($('downChart'), decimate(pendingDraw.down), {
       stroke: '#e6e6e6',
       fill: 'rgba(230,230,230,0.09)',
       scaleKey: 'down',
       minScale: 1e7,
       tension: 0.5,
     });
-    drawChart($('upChart'), pendingDraw.up, {
+    drawChart($('upChart'), decimate(pendingDraw.up), {
       stroke: '#e6e6e6',
       fill: 'rgba(230,230,230,0.09)',
       scaleKey: 'up',
@@ -962,12 +1015,15 @@
     });
   }
 
-  // Animation loop (keeps eased scales smoothly converging even when no new points)
+  // Animation loop: draw only when data changed or scale still easing.
   let animLoopId = null;
   function startAnimLoop() {
     if (animLoopId) return;
     const tick = () => {
-      if (pendingDraw.hasData) drawAll();
+      if (pendingDraw.hasData && (dirty || !isScaleStable())) {
+        drawAll();
+        dirty = false;
+      }
       animLoopId = requestAnimationFrame(tick);
     };
     animLoopId = requestAnimationFrame(tick);
@@ -1110,7 +1166,10 @@
     $('heroTs').innerHTML = '&nbsp;';
 
     scale.lat.max = 0; scale.down.max = 0; scale.up.max = 0;
+    scale.lat.target = 0; scale.down.target = 0; scale.up.target = 0;
+    resetPhaseAcc();
     pendingDraw = { lat: [], down: [], up: [], hasData: false };
+    dirty = true;
     drawAll();
   }
 
@@ -1188,10 +1247,11 @@
     engine.onResultsChange = () => {
       const r = engine.results;
       updateStats(r);
-      pendingDraw.lat = r.getUnloadedLatencyPoints?.() || [];
-      pendingDraw.down = r.getDownloadBandwidthPoints?.() || [];
-      pendingDraw.up = r.getUploadBandwidthPoints?.() || [];
+      pendingDraw.lat = consumePhase('lat', r.getUnloadedLatencyPoints?.() || []);
+      pendingDraw.down = consumePhase('down', r.getDownloadBandwidthPoints?.() || []);
+      pendingDraw.up = consumePhase('up', r.getUploadBandwidthPoints?.() || []);
       pendingDraw.hasData = true;
+      dirty = true;
       detectStage(r);
     };
     engine.onRunningChange = (isRunning) => { if (!isRunning) finish(engine.results); };

@@ -332,7 +332,7 @@
     border-bottom: 1px solid var(--rule);
   }
   .chart-cell {
-    padding: 0;
+    padding: 0 14px 14px;
     border-right: 1px solid var(--rule);
     display: flex;
     flex-direction: column;
@@ -343,13 +343,14 @@
     letter-spacing: 0.2em;
     color: var(--muted);
     font-weight: 500;
-    padding: 22px 22px 12px;
+    padding: 22px 0 10px;
   }
   canvas.chart {
     display: block;
     width: 100%;
     height: 160px;
   }
+  canvas.chart.hoverable { cursor: crosshair; }
   @media (max-width: 820px) {
     .charts { grid-template-columns: 1fr; }
     .chart-cell { border-right: 0; border-bottom: 1px solid var(--rule); }
@@ -628,8 +629,8 @@
     .stat { padding: 18px 8px 20px; }
     .stat .k { font-size: 9px; letter-spacing: 0.16em; }
     .stat .v { font-size: 26px; }
-    .chart-cell { padding: 0; }
-    .chart-cell .title { font-size: 9px; letter-spacing: 0.16em; padding: 18px 16px 10px; }
+    .chart-cell { padding: 0 12px 12px; }
+    .chart-cell .title { font-size: 9px; letter-spacing: 0.16em; padding: 18px 0 8px; }
     canvas.chart { height: 120px; }
     .verdict-row { padding: 16px; gap: 14px; }
     .meta-row { padding: 16px; }
@@ -704,11 +705,11 @@
     </div>
     <div class="chart-cell">
       <div class="title">DOWNLOAD OVER TIME (MBPS)</div>
-      <canvas class="chart" id="downChart"></canvas>
+      <canvas class="chart hoverable" id="downChart"></canvas>
     </div>
     <div class="chart-cell">
       <div class="title">UPLOAD OVER TIME (MBPS)</div>
-      <canvas class="chart" id="upChart"></canvas>
+      <canvas class="chart hoverable" id="upChart"></canvas>
     </div>
   </div>
 
@@ -986,6 +987,9 @@
     return scale[key].max;
   }
 
+  // Hover state: frac (0..1) per canvas
+  const hoverIdx = new WeakMap();
+
   function drawChart(canvas, rawPoints, opts) {
     const meta = canvasMeta.get(canvas);
     if (!meta) return;
@@ -1011,7 +1015,7 @@
       return h - (c / yMax) * (h - 6) - 3;
     };
 
-    const screenPts = vals.map(({ i, v }) => ({ x: xAt(i), y: yAt(v) }));
+    const screenPts = vals.map(({ i, v }) => ({ x: xAt(i), y: yAt(v), v, i }));
 
     // Area fill
     ctx.beginPath();
@@ -1069,6 +1073,76 @@
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(labelText, boxX + padX, boxY + boxH / 2 + 0.5);
+      ctx.restore();
+    }
+
+    // X-axis time labels
+    if (opts.showXAxis && vals.length > 1) {
+      ctx.save();
+      ctx.font = '600 9px ' + getComputedStyle(document.body).fontFamily;
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      ctx.textBaseline = 'bottom';
+      const elapsed = Math.max(0, opts.elapsedSec || 0);
+      ctx.textAlign = 'left';
+      ctx.fillText('0S', 4, h - 3);
+      ctx.textAlign = 'right';
+      ctx.fillText(`${elapsed.toFixed(0)}S`, w - 4, h - 3);
+      ctx.restore();
+    }
+
+    // Hover overlay (vertical crosshair + chip)
+    const hoverFrac = hoverIdx.get(canvas);
+    if (opts.showHover && hoverFrac != null && screenPts.length) {
+      const targetX = hoverFrac * w;
+      let nearest = screenPts[0];
+      let minDist = Infinity;
+      for (const p of screenPts) {
+        const d = Math.abs(p.x - targetX);
+        if (d < minDist) { minDist = d; nearest = p; }
+      }
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+      ctx.setLineDash([3, 4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(nearest.x) + 0.5, 0);
+      ctx.lineTo(Math.round(nearest.x) + 0.5, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = opts.stroke;
+      ctx.beginPath();
+      ctx.arc(nearest.x, nearest.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      const elapsed = Math.max(0, opts.elapsedSec || 0);
+      const timeAtPoint = screenPts.length > 1
+        ? (screenPts.indexOf(nearest) / (screenPts.length - 1)) * elapsed
+        : elapsed;
+      const valFmt = opts.hoverValueFmt || ((v) => v.toFixed(0));
+      const label = `${timeAtPoint.toFixed(0)}S · ${valFmt(nearest.v)}`;
+      ctx.font = '600 10px ' + getComputedStyle(document.body).fontFamily;
+      const tw = ctx.measureText(label).width;
+      const padX2 = 7;
+      const boxH2 = 16;
+      const boxW2 = tw + padX2 * 2;
+      let boxX2 = nearest.x + 10;
+      if (boxX2 + boxW2 > w - 2) boxX2 = nearest.x - boxW2 - 10;
+      boxX2 = Math.max(2, Math.min(w - boxW2 - 2, boxX2));
+      const boxY2 = Math.max(2, nearest.y - boxH2 - 8);
+
+      ctx.fillStyle = 'rgba(11,11,11,0.92)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.rect(boxX2, boxY2, boxW2, boxH2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, boxX2 + padX2, boxY2 + boxH2 / 2 + 0.5);
       ctx.restore();
     }
   }
@@ -1151,12 +1225,17 @@
       showMedian: true,
       medianFmt: (v) => v.toFixed(0) + 'MS',
     });
+    const elapsed = currentElapsedSec();
     drawChart($('downChart'), decimate(pendingDraw.down), {
       stroke: '#88c9a0',
       fill: 'rgba(136,201,160,0.12)',
       scaleKey: 'down',
       minScale: 1e7,
       tension: 0.5,
+      showXAxis: true,
+      showHover: true,
+      elapsedSec: elapsed,
+      hoverValueFmt: (v) => fmtBw(v) + ' MBPS',
     });
     drawChart($('upChart'), decimate(pendingDraw.up), {
       stroke: '#d9b56a',
@@ -1164,6 +1243,10 @@
       scaleKey: 'up',
       minScale: 1e7,
       tension: 0.5,
+      showXAxis: true,
+      showHover: true,
+      elapsedSec: elapsed,
+      hoverValueFmt: (v) => fmtBw(v) + ' MBPS',
     });
   }
 
@@ -1301,6 +1384,25 @@
   let currentStage = 'idle';
   let currentEngine = null;
   let aborted = false;
+  let finalElapsedSec = 0;
+
+  function currentElapsedSec() {
+    if (running && startTime) return (Date.now() - startTime) / 1000;
+    return finalElapsedSec;
+  }
+
+  function attachHover(canvas) {
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      hoverIdx.set(canvas, frac);
+      scheduleDraw();
+    });
+    canvas.addEventListener('mouseleave', () => {
+      hoverIdx.delete(canvas);
+      scheduleDraw();
+    });
+  }
 
   function showStopButton(show) {
     $('runBtn').style.display = show ? 'none' : '';
@@ -1328,6 +1430,7 @@
     scale.lat.target = 0; scale.down.target = 0; scale.up.target = 0;
     resetPhaseAcc();
     pendingDraw = { lat: [], down: [], up: [], hasData: false };
+    finalElapsedSec = 0;
     dirty = true;
     drawAll();
   }
@@ -1446,6 +1549,7 @@
     const sub = $('heroSub');
     sub.className = 'sub';
     const elapsed = Math.round((Date.now() - startTime) / 1000);
+    finalElapsedSec = elapsed;
     sub.innerHTML = `STOPPED <span class="dot"></span> ${elapsed} S`;
   }
 
@@ -1488,6 +1592,7 @@
     showStopButton(false);
     const endDate = new Date();
     const totalSec = Math.round((endDate.getTime() - startTime) / 1000);
+    finalElapsedSec = totalSec;
     $('runBtn').disabled = false;
     $('runBtn').textContent = 'RUN AGAIN';
 
@@ -1537,6 +1642,7 @@
 
   // --- Wire up ---
   [$('latChart'), $('downChart'), $('upChart')].forEach(observeCanvas);
+  [$('downChart'), $('upChart')].forEach(attachHover);
   $('runBtn').addEventListener('click', runTest);
   $('stopBtn').addEventListener('click', stopTest);
   $('historyBtn').addEventListener('click', openHistory);

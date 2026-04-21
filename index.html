@@ -1564,6 +1564,14 @@
   loadMeta();
   updateHistoryBadge();
   resetUI();
+
+  // Autostart 1s after load unless ?autostart=false is set.
+  const urlParams = new URLSearchParams(location.search);
+  if (urlParams.get('autostart') !== 'false') {
+    setTimeout(() => {
+      if (!running) runTest();
+    }, 1000);
+  }
 </script>
 </body>
 </html>

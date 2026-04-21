@@ -501,6 +501,25 @@
     overflow-y: auto;
   }
   .modal.open { display: flex; }
+  .modal.confirm { z-index: 110; padding: 100px 20px 40px; }
+  .confirm-inner { max-width: 440px; }
+  .confirm-head {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .confirm-body {
+    padding: 20px 22px 22px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .confirm-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
   .modal-inner {
     background: var(--bg);
     border: 1px solid var(--rule-2);
@@ -787,6 +806,19 @@
     <div class="modal-foot">
       <span class="hint">STORED LOCALLY IN THIS BROWSER</span>
       <button class="run-btn danger" id="historyClear">CLEAR HISTORY</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal confirm" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal-inner confirm-inner">
+    <div class="confirm-head">
+      <div class="modal-title" id="confirmTitle">CONFIRM</div>
+    </div>
+    <div class="confirm-body" id="confirmBody">Are you sure?</div>
+    <div class="confirm-foot">
+      <button class="run-btn" id="confirmCancel">CANCEL</button>
+      <button class="run-btn danger" id="confirmOk">CONFIRM</button>
     </div>
   </div>
 </div>
@@ -1395,8 +1427,57 @@
     $('historyModal').classList.remove('open');
     document.body.style.overflow = '';
   }
-  function clearHistory() {
-    if (!confirm('Clear all test history from this browser?')) return;
+  function openConfirm({ title, body, confirmText, cancelText, danger }) {
+    return new Promise(resolve => {
+      const modal = $('confirmModal');
+      const ok = $('confirmOk');
+      const cancel = $('confirmCancel');
+      $('confirmTitle').textContent = title || 'CONFIRM';
+      $('confirmBody').textContent = body || '';
+      ok.textContent = (confirmText || 'CONFIRM').toUpperCase();
+      cancel.textContent = (cancelText || 'CANCEL').toUpperCase();
+      ok.classList.toggle('danger', !!danger);
+
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      function cleanup(result) {
+        modal.classList.remove('open');
+        if (!$('historyModal').classList.contains('open')) {
+          document.body.style.overflow = '';
+        }
+        ok.removeEventListener('click', onOk);
+        cancel.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      function onOk() { cleanup(true); }
+      function onCancel() { cleanup(false); }
+      function onBackdrop(e) { if (e.target === modal) cleanup(false); }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); cleanup(false); }
+        else if (e.key === 'Enter') { e.preventDefault(); cleanup(true); }
+      }
+
+      ok.addEventListener('click', onOk);
+      cancel.addEventListener('click', onCancel);
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+
+      setTimeout(() => cancel.focus(), 20);
+    });
+  }
+
+  async function clearHistory() {
+    const confirmed = await openConfirm({
+      title: 'CLEAR HISTORY',
+      body: 'This removes every saved test from this browser. Action cannot be undone.',
+      confirmText: 'Clear all',
+      cancelText: 'Keep',
+      danger: true,
+    });
+    if (!confirmed) return;
     localStorage.removeItem(STORE_KEY);
     updateHistoryBadge();
     renderHistory();

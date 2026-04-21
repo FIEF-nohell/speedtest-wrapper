@@ -1,10 +1,10 @@
-# Netpulse
+# speedtest
 
 Browser-based internet speed test powered by [`@cloudflare/speedtest`](https://github.com/cloudflare/speedtest).
 
 Live: **[speedtest.nohelll.com](https://speedtest.nohelll.com)**
 
-![Netpulse OG preview](og-image.png)
+![speedtest OG preview](og-image.png)
 
 ## What it measures
 
@@ -14,6 +14,8 @@ Live: **[speedtest.nohelll.com](https://speedtest.nohelll.com)**
 - **Overall verdict** (Excellent / Good / Fair / Poor)
 
 Past runs are stored in the browser under `localStorage` key `netpulse.history.v1` (up to 100 entries). No backend, no tracking.
+
+> The storage key still carries the original `netpulse` prefix on purpose so existing browsers don't lose their history after the rename.
 
 ## Stack
 

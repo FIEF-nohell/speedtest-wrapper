@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Netpulse · Browser Speed Test</title>
+<title>speedtest · Browser Speed Test</title>
 <meta name="description" content="Instant browser speed test. Download, upload, latency, jitter, and bufferbloat measured against the Cloudflare edge network.">
 <meta name="author" content="nohell">
 <meta name="theme-color" content="#0b0b0b">
@@ -13,17 +13,17 @@
 <link rel="canonical" href="https://speedtest.nohelll.com/">
 
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Netpulse">
+<meta property="og:site_name" content="speedtest">
 <meta property="og:url" content="https://speedtest.nohelll.com/">
-<meta property="og:title" content="Netpulse · Browser Speed Test">
+<meta property="og:title" content="speedtest · Browser Speed Test">
 <meta property="og:description" content="Download, upload, latency, jitter, and bufferbloat against the Cloudflare edge.">
 <meta property="og:image" content="https://speedtest.nohelll.com/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Netpulse speed test dashboard showing 584 Mbps on a dark minimal interface">
+<meta property="og:image:alt" content="speedtest dashboard showing 584 Mbps on a dark minimal interface">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Netpulse · Browser Speed Test">
+<meta name="twitter:title" content="speedtest · Browser Speed Test">
 <meta name="twitter:description" content="Download, upload, latency, jitter, and bufferbloat against the Cloudflare edge.">
 <meta name="twitter:image" content="https://speedtest.nohelll.com/og-image.png">
 
@@ -89,10 +89,20 @@
     gap: 16px;
   }
   .brand {
-    font-size: 12px;
-    letter-spacing: 0.32em;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 15px;
+    letter-spacing: 0.01em;
     font-weight: 600;
     color: var(--ink);
+    text-transform: none;
+  }
+  .brand svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
   }
   .actions {
     display: flex;
@@ -499,6 +509,13 @@
     padding: 18px 22px;
     border-bottom: 1px solid var(--rule);
   }
+  .modal-title {
+    font-size: 12px;
+    letter-spacing: 0.28em;
+    font-weight: 600;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
   .history-head {
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.6fr 1fr;
@@ -629,7 +646,14 @@
 <div class="wrap">
 
   <div class="topbar">
-    <div class="brand">NETPULSE</div>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M2 16 L8.5 16 L11 9 L14 23 L17 11 L20 21 L22.5 16 L30 16"
+              fill="none" stroke="#c5672b" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>speedtest</span>
+    </div>
     <div class="actions">
       <button class="run-btn ghost icon-btn" id="historyBtn" aria-label="History" title="History">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -742,7 +766,7 @@
 <div class="modal" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
   <div class="modal-inner">
     <div class="modal-head">
-      <div class="brand" id="historyTitle">TEST HISTORY</div>
+      <div class="modal-title" id="historyTitle">TEST HISTORY</div>
       <button class="run-btn" id="historyClose">CLOSE</button>
     </div>
     <div class="history-head">

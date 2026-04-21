@@ -1000,8 +1000,15 @@
     const vals = [];
     const n = rawPoints?.length || 0;
     for (let i = 0; i < n; i++) {
-      const v = pv(rawPoints[i]);
-      if (isFinite(v) && v > 0) vals.push({ i, v });
+      const raw = rawPoints[i];
+      const v = pv(raw);
+      if (!isFinite(v) || v <= 0) continue;
+      let tRel = null;
+      if (raw && typeof raw.t === 'number') {
+        tRel = raw.t > 1e10 ? raw.t - startTime : raw.t;
+        if (!isFinite(tRel) || tRel < 0) tRel = null;
+      }
+      vals.push({ i, v, t: tRel });
     }
     if (!vals.length) return;
 
@@ -1009,13 +1016,18 @@
     const tgt = dataMax * 1.15;
     const yMax = Math.max(opts.minScale || 0, easeScale(opts.scaleKey, tgt));
 
-    const xAt = (i) => n === 1 ? w / 2 : (i / (n - 1)) * (w - 2) + 1;
+    const totalMs = (opts.elapsedSec || 0) * 1000;
+    const useTime = opts.useTime && totalMs > 0 && vals.every(p => p.t != null);
+
+    const xAtPoint = useTime
+      ? (p) => Math.max(1, Math.min(w - 1, (p.t / totalMs) * (w - 2) + 1))
+      : (p) => n === 1 ? w / 2 : (p.i / (n - 1)) * (w - 2) + 1;
     const yAt = (v) => {
       const c = Math.max(0, Math.min(yMax, v));
       return h - (c / yMax) * (h - 6) - 3;
     };
 
-    const screenPts = vals.map(({ i, v }) => ({ x: xAt(i), y: yAt(v), v, i }));
+    const screenPts = vals.map(p => ({ x: xAtPoint(p), y: yAt(p.v), v: p.v, i: p.i, t: p.t }));
 
     // Area fill
     ctx.beginPath();
@@ -1116,9 +1128,14 @@
       ctx.fill();
 
       const elapsed = Math.max(0, opts.elapsedSec || 0);
-      const timeAtPoint = screenPts.length > 1
-        ? (screenPts.indexOf(nearest) / (screenPts.length - 1)) * elapsed
-        : elapsed;
+      let timeAtPoint;
+      if (useTime && nearest.t != null) {
+        timeAtPoint = nearest.t / 1000;
+      } else if (screenPts.length > 1) {
+        timeAtPoint = (screenPts.indexOf(nearest) / (screenPts.length - 1)) * elapsed;
+      } else {
+        timeAtPoint = elapsed;
+      }
       const valFmt = opts.hoverValueFmt || ((v) => v.toFixed(0));
       const label = `${timeAtPoint.toFixed(0)}S · ${valFmt(nearest.v)}`;
       ctx.font = '600 10px ' + getComputedStyle(document.body).fontFamily;
@@ -1234,6 +1251,7 @@
       tension: 0.5,
       showXAxis: true,
       showHover: true,
+      useTime: true,
       elapsedSec: elapsed,
       hoverValueFmt: (v) => fmtBw(v) + ' MBPS',
     });
@@ -1245,6 +1263,7 @@
       tension: 0.5,
       showXAxis: true,
       showHover: true,
+      useTime: true,
       elapsedSec: elapsed,
       hoverValueFmt: (v) => fmtBw(v) + ' MBPS',
     });

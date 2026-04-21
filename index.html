@@ -322,8 +322,10 @@
     border-bottom: 1px solid var(--rule);
   }
   .chart-cell {
-    padding: 22px 22px 26px;
+    padding: 0;
     border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
   }
   .chart-cell:last-child { border-right: 0; }
   .chart-cell .title {
@@ -331,7 +333,7 @@
     letter-spacing: 0.2em;
     color: var(--muted);
     font-weight: 500;
-    margin-bottom: 12px;
+    padding: 22px 22px 12px;
   }
   canvas.chart {
     display: block;
@@ -609,8 +611,8 @@
     .stat { padding: 18px 8px 20px; }
     .stat .k { font-size: 9px; letter-spacing: 0.16em; }
     .stat .v { font-size: 26px; }
-    .chart-cell { padding: 18px 16px 22px; }
-    .chart-cell .title { font-size: 9px; letter-spacing: 0.16em; }
+    .chart-cell { padding: 0; }
+    .chart-cell .title { font-size: 9px; letter-spacing: 0.16em; padding: 18px 16px 10px; }
     canvas.chart { height: 120px; }
     .verdict-row { padding: 16px; gap: 14px; }
     .meta-row { padding: 16px; }

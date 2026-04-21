@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Netpulse · Browser Speed Test</title>
+<meta name="description" content="Instant browser speed test. Download, upload, latency, jitter, and bufferbloat measured against the Cloudflare edge network.">
+<meta name="author" content="nohell">
+<meta name="theme-color" content="#0b0b0b">
+<meta name="color-scheme" content="dark">
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="canonical" href="https://speedtest.nohelll.com/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Netpulse">
+<meta property="og:url" content="https://speedtest.nohelll.com/">
+<meta property="og:title" content="Netpulse · Browser Speed Test">
+<meta property="og:description" content="Download, upload, latency, jitter, and bufferbloat against the Cloudflare edge.">
+<meta property="og:image" content="https://speedtest.nohelll.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Netpulse speed test dashboard showing 584 Mbps on a dark minimal interface">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Netpulse · Browser Speed Test">
+<meta name="twitter:description" content="Download, upload, latency, jitter, and bufferbloat against the Cloudflare edge.">
+<meta name="twitter:image" content="https://speedtest.nohelll.com/og-image.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@200;300;400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0b;
+    --bg-2: #121212;
+    --bg-soft: #161616;
+    --ink: #ececec;
+    --ink-2: #b8b8b8;
+    --muted: #6a6a6a;
+    --muted-2: #4a4a4a;
+    --rule: #1f1f1f;
+    --rule-2: #2a2a2a;
+    --orange: #c5672b;
+    --orange-dim: #b3581f;
+    --orange-soft: #3a1e10;
+    --green: #7ecc5a;
+    --red: #d85757;
+    --amber: #c5a02b;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --cond: "Barlow Condensed", "Oswald", Impact, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 20px 28px 40px;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    gap: 16px;
+  }
+  .brand {
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .run-btn {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    font-weight: 500;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule-2);
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .run-btn:hover:not(:disabled) {
+    border-color: var(--orange);
+    color: var(--orange);
+  }
+  .run-btn.ghost:hover:not(:disabled) {
+    border-color: var(--ink-2);
+    color: var(--ink);
+  }
+  .run-btn:disabled {
+    color: var(--muted-2);
+    cursor: not-allowed;
+  }
+  .run-btn .count {
+    font-family: var(--sans);
+    font-size: 10px;
+    background: var(--rule-2);
+    color: var(--ink-2);
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .run-btn.danger {
+    border-color: rgba(216,87,87,0.4);
+    color: #d85757;
+  }
+  .run-btn.danger:hover:not(:disabled) {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 64px 0 48px;
+  }
+  .hero .label {
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 24px;
+  }
+  .hero .num {
+    font-family: var(--cond);
+    font-weight: 200;
+    font-size: 168px;
+    line-height: 0.88;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .hero .num .unit {
+    font-size: 30px;
+    letter-spacing: 0.16em;
+    margin-left: 14px;
+    font-weight: 300;
+    color: var(--ink-2);
+    vertical-align: 0.55em;
+  }
+  .hero .rule {
+    width: 44px;
+    height: 1px;
+    background: var(--rule-2);
+    margin: 32px auto 18px;
+  }
+  .hero .sub {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .hero .sub .dot {
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--muted);
+    margin: 0 10px;
+    vertical-align: 2px;
+  }
+  .hero .sub.live { color: var(--orange); }
+  .hero .sub.live .dot {
+    background: var(--orange);
+    animation: blink 1s infinite;
+  }
+  .hero .ts {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--muted-2);
+    font-weight: 500;
+    margin-top: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  /* Stats strip */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .stat {
+    padding: 22px 12px 24px;
+    text-align: center;
+    border-right: 1px solid var(--rule);
+    transition: background .2s;
+  }
+  .stat:last-child { border-right: 0; }
+  .stat .k {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .stat .k .glyph {
+    margin-right: 4px;
+    opacity: 0.8;
+  }
+  .stat .v {
+    font-family: var(--cond);
+    font-size: 30px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .u {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .stat.alert .k, .stat.alert .v { color: var(--orange); }
+  .stat.alert .u { color: var(--orange-dim); }
+  @media (max-width: 820px) {
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .stat { border-bottom: 1px solid var(--rule); }
+    .stat:nth-child(3n) { border-right: 0; }
+  }
+  @media (max-width: 520px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(3n) { border-right: 1px solid var(--rule); }
+    .stat:nth-child(2n) { border-right: 0; }
+  }
+
+  /* Charts */
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--rule);
+  }
+  .chart-cell {
+    padding: 22px 22px 26px;
+    border-right: 1px solid var(--rule);
+  }
+  .chart-cell:last-child { border-right: 0; }
+  .chart-cell .title {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  canvas.chart {
+    display: block;
+    width: 100%;
+    height: 160px;
+  }
+  @media (max-width: 820px) {
+    .charts { grid-template-columns: 1fr; }
+    .chart-cell { border-right: 0; border-bottom: 1px solid var(--rule); }
+    .chart-cell:last-child { border-bottom: 0; }
+  }
+
+  /* Verdict strip */
+  .verdict-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 28px;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--bg-2);
+  }
+  .bloat-cell { display: flex; align-items: center; gap: 14px; }
+  .bloat-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+  }
+  .bb-A { background: rgba(126,204,90,0.12); color: var(--green); border-color: rgba(126,204,90,0.3); }
+  .bb-B { background: rgba(197,160,43,0.12); color: var(--amber); border-color: rgba(197,160,43,0.3); }
+  .bb-C { background: rgba(197,103,43,0.12); color: var(--orange); border-color: rgba(197,103,43,0.3); }
+  .bb-D { background: rgba(216,87,87,0.12); color: var(--red); border-color: rgba(216,87,87,0.3); }
+  .bloat-text .t {
+    font-size: 12px; font-weight: 600; color: var(--ink); letter-spacing: 0.02em;
+  }
+  .bloat-text .t em { font-style: normal; color: var(--ink-2); font-weight: 400; }
+  .bloat-text .d { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .verdict-cell { text-align: right; }
+  .verdict-cell .k { font-size: 10px; letter-spacing: 0.24em; color: var(--muted); font-weight: 500; }
+  .verdict-cell .v {
+    font-family: var(--cond);
+    font-size: 26px;
+    font-weight: 400;
+    line-height: 1;
+    margin-top: 4px;
+  }
+  .vv-Excellent { color: var(--green); }
+  .vv-Good { color: var(--green); }
+  .vv-Fair { color: var(--amber); }
+  .vv-Poor { color: var(--red); }
+  .vv-Pending { color: var(--muted); }
+  .verdict-cell .d { font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: 0.12em; }
+  @media (max-width: 640px) {
+    .verdict-row { grid-template-columns: 1fr; gap: 14px; }
+    .verdict-cell { text-align: left; }
+  }
+
+  /* Meta row */
+  .meta-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 18px 22px;
+  }
+  .meta-cell { padding-right: 16px; }
+  .meta-cell .k { font-size: 10px; letter-spacing: 0.24em; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+  .meta-cell .v { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+  .meta-cell .v.err { color: var(--red); font-weight: 400; }
+  @media (max-width: 820px) { .meta-row { grid-template-columns: repeat(2, 1fr); gap: 14px 0; } }
+  @media (max-width: 420px) { .meta-row { grid-template-columns: 1fr; gap: 12px; } }
+
+  .disclaimer {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 28px;
+    line-height: 1.65;
+    max-width: 760px;
+  }
+  .disclaimer a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule-2); }
+  .disclaimer a:hover { color: var(--orange); border-color: var(--orange); }
+
+  /* Modal */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,6,6,0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 100;
+    padding: 60px 20px 40px;
+    overflow-y: auto;
+  }
+  .modal.open { display: flex; }
+  .modal-inner {
+    background: var(--bg);
+    border: 1px solid var(--rule-2);
+    width: 100%;
+    max-width: 860px;
+    border-radius: 2px;
+  }
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .history-head {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.6fr 1fr;
+    padding: 12px 22px;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--muted);
+    font-weight: 500;
+    border-bottom: 1px solid var(--rule);
+  }
+  .history-list {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .history-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 0.8fr 0.6fr 1fr;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--rule);
+    align-items: center;
+    font-size: 13px;
+    transition: background .15s;
+  }
+  .history-row:hover { background: var(--bg-2); }
+  .history-row .time {
+    font-size: 12px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .history-row .time small {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.08em;
+  }
+  .history-row .num {
+    font-family: var(--cond);
+    font-size: 20px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+  }
+  .history-row .num small {
+    font-size: 9px;
+    color: var(--muted);
+    margin-left: 4px;
+    letter-spacing: 0.14em;
+  }
+  .history-row .bb {
+    font-weight: 700;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    display: inline-block;
+    justify-self: start;
+  }
+  .history-row .vv {
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    font-size: 13px;
+  }
+  .history-empty {
+    padding: 60px 22px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+  }
+  .modal-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-foot .hint {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+  }
+  @media (max-width: 720px) {
+    .history-head, .history-row { grid-template-columns: 1.2fr 0.9fr 0.9fr 0.6fr 0.5fr 1fr; padding: 12px 14px; }
+    .history-row .num { font-size: 17px; }
+  }
+  @media (max-width: 540px) {
+    .history-head { display: none; }
+    .history-row {
+      grid-template-columns: 1fr 1fr;
+      padding: 14px 16px;
+      gap: 4px 12px;
+    }
+    .history-row > * { font-size: 12px; }
+    .history-row .time { grid-column: 1 / -1; }
+  }
+
+  /* Hero mobile */
+  @media (max-width: 640px) {
+    .hero { padding: 40px 0 32px; }
+    .hero .num { font-size: 104px; }
+    .hero .num .unit { font-size: 20px; }
+  }
+
+  /* Credit backlink */
+  .credit {
+    position: fixed;
+    bottom: 14px;
+    right: 16px;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    background: rgba(11, 11, 11, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 8px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    transition: color .15s, border-color .15s, background .15s;
+    z-index: 50;
+  }
+  .credit:hover {
+    color: var(--orange);
+    border-color: var(--orange);
+  }
+  .credit .by {
+    color: var(--muted-2);
+    margin-right: 5px;
+  }
+  @media (max-width: 540px) {
+    .credit { bottom: 10px; right: 10px; padding: 6px 10px; font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">NETPULSE</div>
+    <div class="actions">
+      <button class="run-btn ghost" id="historyBtn">HISTORY <span class="count" id="historyCount">0</span></button>
+      <button class="run-btn" id="runBtn">RUN TEST</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="label">DOWNLOAD</div>
+    <div class="num"><span id="heroValue">0.0</span><span class="unit">MBPS</span></div>
+    <div class="rule"></div>
+    <div class="sub" id="heroSub">READY <span class="dot"></span> PRESS RUN TEST</div>
+    <div class="ts" id="heroTs">&nbsp;</div>
+  </div>
+
+  <div class="stats" id="statsStrip">
+    <div class="stat" data-stat="down">
+      <div class="k"><span class="glyph">&darr;</span>DOWNLOAD</div>
+      <div><span class="v" id="sDown">0.0</span><span class="u">MBPS</span></div>
+    </div>
+    <div class="stat" data-stat="up">
+      <div class="k"><span class="glyph">&uarr;</span>UPLOAD</div>
+      <div><span class="v" id="sUp">0.0</span><span class="u">MBPS</span></div>
+    </div>
+    <div class="stat" data-stat="idle">
+      <div class="k">IDLE PING</div>
+      <div><span class="v" id="sIdle">0.0</span><span class="u">MS</span></div>
+    </div>
+    <div class="stat" data-stat="jitter">
+      <div class="k">JITTER</div>
+      <div><span class="v" id="sJitter">0.0</span><span class="u">MS</span></div>
+    </div>
+    <div class="stat" id="statLdown">
+      <div class="k"><span class="glyph">&darr;</span>LOADED PING</div>
+      <div><span class="v" id="sLdown">0</span><span class="u">MS</span></div>
+    </div>
+    <div class="stat" id="statLup">
+      <div class="k"><span class="glyph">&uarr;</span>LOADED PING</div>
+      <div><span class="v" id="sLup">0</span><span class="u">MS</span></div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-cell">
+      <div class="title">LATENCY OVER TIME (MS)</div>
+      <canvas class="chart" id="latChart"></canvas>
+    </div>
+    <div class="chart-cell">
+      <div class="title">DOWNLOAD OVER TIME (MBPS)</div>
+      <canvas class="chart" id="downChart"></canvas>
+    </div>
+    <div class="chart-cell">
+      <div class="title">UPLOAD OVER TIME (MBPS)</div>
+      <canvas class="chart" id="upChart"></canvas>
+    </div>
+  </div>
+
+  <div class="verdict-row">
+    <div class="bloat-cell">
+      <span class="bloat-badge bb-A" id="bloatBadge">&ndash;</span>
+      <div class="bloat-text">
+        <div class="t" id="bloatTitle">Bufferbloat: <em>awaiting test</em></div>
+        <div class="d" id="bloatDesc">Run the test to measure delay under load.</div>
+      </div>
+    </div>
+    <div class="verdict-cell">
+      <div class="k">OVERALL</div>
+      <div class="v vv-Pending" id="verdictValue">Pending</div>
+      <div class="d" id="verdictHint">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="meta-row">
+    <div class="meta-cell">
+      <div class="k">SERVER</div>
+      <div class="v" id="metaServer">&ndash;</div>
+    </div>
+    <div class="meta-cell">
+      <div class="k">IP</div>
+      <div class="v" id="metaIp">&ndash;</div>
+    </div>
+    <div class="meta-cell">
+      <div class="k">ISP</div>
+      <div class="v" id="metaIsp">&ndash;</div>
+    </div>
+    <div class="meta-cell">
+      <div class="k">LOCATION</div>
+      <div class="v" id="metaLoc">&ndash;</div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    Measures throughput to Cloudflare's edge network. Results reflect the path to the nearest colo, not the whole internet.
+    Library: <a href="https://github.com/cloudflare/speedtest" target="_blank" rel="noopener">@cloudflare/speedtest</a>.
+    Bufferbloat thresholds per <a href="https://www.waveform.com/tools/bufferbloat" target="_blank" rel="noopener">Waveform</a>.
+  </div>
+
+</div>
+
+<a class="credit" href="https://nohelll.com" target="_blank" rel="noopener" aria-label="Made by nohell">
+  <span class="by">made by</span>nohell
+</a>
+
+<div class="modal" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+  <div class="modal-inner">
+    <div class="modal-head">
+      <div class="brand" id="historyTitle">TEST HISTORY</div>
+      <button class="run-btn" id="historyClose">CLOSE</button>
+    </div>
+    <div class="history-head">
+      <span>TIME</span>
+      <span>DOWN</span>
+      <span>UP</span>
+      <span>PING</span>
+      <span>BLOAT</span>
+      <span>VERDICT</span>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="modal-foot">
+      <span class="hint">STORED LOCALLY IN THIS BROWSER</span>
+      <button class="run-btn danger" id="historyClear">CLEAR HISTORY</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import SpeedTest from 'https://esm.sh/@cloudflare/speedtest@1.3.0';
+
+  const $ = (id) => document.getElementById(id);
+
+  // --- Helpers ---
+  function pv(p) {
+    if (p == null) return NaN;
+    if (typeof p === 'number') return p;
+    if (Array.isArray(p)) return Number(p[1]);
+    if (typeof p === 'object') {
+      if ('bps' in p) return Number(p.bps);
+      if ('ms' in p) return Number(p.ms);
+      if ('y' in p) return Number(p.y);
+      if ('value' in p) return Number(p.value);
+      if ('v' in p) return Number(p.v);
+    }
+    return NaN;
+  }
+  const fmt = (n, d = 1) => (n == null || !isFinite(n)) ? '0.0' : n.toFixed(d);
+  const fmtBw = (bps) => {
+    if (bps == null || !isFinite(bps)) return '0.0';
+    const m = bps / 1e6;
+    return m >= 100 ? m.toFixed(0) : m.toFixed(1);
+  };
+  const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pad2 = (n) => String(n).padStart(2, '0');
+  function fmtTime(date) {
+    return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+  }
+  function fmtDate(date) {
+    const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return `${MON[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  }
+  function fmtRelative(then) {
+    const diff = Math.max(0, Date.now() - then);
+    const s = Math.round(diff / 1000);
+    if (s < 60) return s + 's ago';
+    const m = Math.round(s / 60);
+    if (m < 60) return m + 'm ago';
+    const h = Math.round(m / 60);
+    if (h < 24) return h + 'h ago';
+    const d = Math.round(h / 24);
+    if (d < 30) return d + 'd ago';
+    const mo = Math.round(d / 30);
+    if (mo < 12) return mo + 'mo ago';
+    return Math.round(mo / 12) + 'y ago';
+  }
+
+  const COLO = {
+    SJC: 'San Jose, CA', LAX: 'Los Angeles, CA', SEA: 'Seattle, WA', IAD: 'Ashburn, VA',
+    DFW: 'Dallas, TX', ORD: 'Chicago, IL', MIA: 'Miami, FL', EWR: 'Newark, NJ',
+    ATL: 'Atlanta, GA', DEN: 'Denver, CO', PHX: 'Phoenix, AZ', MCI: 'Kansas City, MO',
+    YYZ: 'Toronto, ON', YUL: 'Montreal, QC', YVR: 'Vancouver, BC',
+    LHR: 'London, UK', CDG: 'Paris, FR', AMS: 'Amsterdam, NL', FRA: 'Frankfurt, DE',
+    VIE: 'Vienna, AT', MXP: 'Milan, IT', MAD: 'Madrid, ES', ARN: 'Stockholm, SE',
+    WAW: 'Warsaw, PL', PRG: 'Prague, CZ', BUD: 'Budapest, HU', ZRH: 'Zurich, CH',
+    MUC: 'Munich, DE', DUS: 'Dusseldorf, DE', HAM: 'Hamburg, DE', BER: 'Berlin, DE',
+    HKG: 'Hong Kong', SIN: 'Singapore', NRT: 'Tokyo, JP', KIX: 'Osaka, JP',
+    ICN: 'Seoul, KR', TPE: 'Taipei, TW', SYD: 'Sydney, AU', MEL: 'Melbourne, AU',
+    BOM: 'Mumbai, IN', DEL: 'New Delhi, IN', GRU: 'Sao Paulo, BR', EZE: 'Buenos Aires, AR',
+    DUB: 'Dublin, IE', CPH: 'Copenhagen, DK', OSL: 'Oslo, NO', HEL: 'Helsinki, FI',
+  };
+
+  // --- Meta fetch ---
+  let currentMeta = null;
+  async function loadMeta() {
+    try {
+      const r = await fetch('https://speed.cloudflare.com/meta', { cache: 'no-store' });
+      if (!r.ok) throw new Error('meta ' + r.status);
+      const m = await r.json();
+      currentMeta = m;
+      const coloCity = COLO[m.colo] || '';
+      $('metaServer').textContent = coloCity ? `${coloCity} · ${m.colo}` : (m.colo || '—');
+      $('metaIp').textContent = m.clientIp || '—';
+      $('metaIsp').textContent = [m.asOrganization || 'Unknown', m.asn ? `AS${m.asn}` : ''].filter(Boolean).join(' · ');
+      $('metaLoc').textContent = [m.city, m.region, m.country].filter(Boolean).join(', ') || '—';
+      return;
+    } catch (e1) {
+      try {
+        const r = await fetch('https://www.cloudflare.com/cdn-cgi/trace', { cache: 'no-store' });
+        if (!r.ok) throw new Error('trace ' + r.status);
+        const txt = await r.text();
+        const kv = {};
+        txt.split('\n').forEach(line => {
+          const i = line.indexOf('=');
+          if (i > 0) kv[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+        });
+        currentMeta = { clientIp: kv.ip, colo: kv.colo, country: kv.loc };
+        const coloCity = COLO[kv.colo] || '';
+        $('metaServer').textContent = coloCity ? `${coloCity} · ${kv.colo}` : (kv.colo || '—');
+        $('metaIp').textContent = kv.ip || '—';
+        $('metaIsp').textContent = '—';
+        $('metaLoc').textContent = kv.loc || '—';
+      } catch {
+        ['metaServer','metaIp','metaIsp','metaLoc'].forEach(id => {
+          const el = $(id);
+          el.textContent = 'unavailable';
+          el.classList.add('err');
+        });
+      }
+    }
+  }
+
+  // --- Canvas sizing via ResizeObserver ---
+  const canvasMeta = new WeakMap();
+  function observeCanvas(canvas) {
+    const apply = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (w < 1 || h < 1) return;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvasMeta.set(canvas, { ctx, w, h, dpr });
+    };
+    apply();
+    const ro = new ResizeObserver(() => { apply(); scheduleDraw(); });
+    ro.observe(canvas);
+  }
+
+  // --- Drawing ---
+  function drawGrid(ctx, w, h, rows = 4) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < rows; i++) {
+      const y = Math.round((i / rows) * h) + 0.5;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+  }
+
+  // Catmull-Rom to cubic Bezier smooth path. Appends to current path.
+  function addSmooth(ctx, pts, tension = 0.5) {
+    if (!pts.length) return;
+    if (pts.length === 1) {
+      ctx.lineTo(pts[0].x, pts[0].y);
+      return;
+    }
+    ctx.lineTo(pts[0].x, pts[0].y);
+    const t = tension / 3;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const cp1x = p1.x + (p2.x - p0.x) * t;
+      const cp1y = p1.y + (p2.y - p0.y) * t;
+      const cp2x = p2.x - (p3.x - p1.x) * t;
+      const cp2y = p2.y - (p3.y - p1.y) * t;
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+    }
+  }
+
+  // Eased y-axis maxima per chart
+  const scale = { lat: { max: 0, target: 0 }, down: { max: 0, target: 0 }, up: { max: 0, target: 0 } };
+  function easeScale(key, target, alpha = 0.18) {
+    scale[key].target = target;
+    scale[key].max = scale[key].max + (target - scale[key].max) * alpha;
+    if (Math.abs(scale[key].max - target) < target * 0.005) scale[key].max = target;
+    return scale[key].max;
+  }
+
+  function drawChart(canvas, rawPoints, opts) {
+    const meta = canvasMeta.get(canvas);
+    if (!meta) return;
+    const { ctx, w, h } = meta;
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, w, h);
+
+    const vals = [];
+    const n = rawPoints?.length || 0;
+    for (let i = 0; i < n; i++) {
+      const v = pv(rawPoints[i]);
+      if (isFinite(v) && v > 0) vals.push({ i, v });
+    }
+    if (!vals.length) return;
+
+    const dataMax = Math.max(...vals.map(p => p.v));
+    const tgt = dataMax * 1.15;
+    const yMax = Math.max(opts.minScale || 0, easeScale(opts.scaleKey, tgt));
+
+    const xAt = (i) => n === 1 ? w / 2 : (i / (n - 1)) * (w - 2) + 1;
+    const yAt = (v) => {
+      const c = Math.max(0, Math.min(yMax, v));
+      return h - (c / yMax) * (h - 6) - 3;
+    };
+
+    const screenPts = vals.map(({ i, v }) => ({ x: xAt(i), y: yAt(v) }));
+
+    // Area fill
+    ctx.beginPath();
+    ctx.moveTo(screenPts[0].x, h);
+    addSmooth(ctx, screenPts, opts.tension ?? 0.5);
+    ctx.lineTo(screenPts[screenPts.length - 1].x, h);
+    ctx.closePath();
+    ctx.fillStyle = opts.fill;
+    ctx.fill();
+
+    // Stroke
+    ctx.beginPath();
+    ctx.moveTo(screenPts[0].x, screenPts[0].y);
+    addSmooth(ctx, screenPts, opts.tension ?? 0.5);
+    ctx.strokeStyle = opts.stroke;
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // Latest raw data for draw loop
+  let pendingDraw = {
+    lat: [], down: [], up: [], hasData: false,
+  };
+
+  let rafPending = false;
+  function scheduleDraw() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => {
+      rafPending = false;
+      drawAll();
+    });
+  }
+
+  function drawAll() {
+    drawChart($('latChart'), pendingDraw.lat, {
+      stroke: '#c5672b',
+      fill: 'rgba(197,103,43,0.32)',
+      scaleKey: 'lat',
+      minScale: 20,
+      tension: 0.5,
+    });
+    drawChart($('downChart'), pendingDraw.down, {
+      stroke: '#e6e6e6',
+      fill: 'rgba(230,230,230,0.09)',
+      scaleKey: 'down',
+      minScale: 1e7,
+      tension: 0.5,
+    });
+    drawChart($('upChart'), pendingDraw.up, {
+      stroke: '#e6e6e6',
+      fill: 'rgba(230,230,230,0.09)',
+      scaleKey: 'up',
+      minScale: 1e7,
+      tension: 0.5,
+    });
+  }
+
+  // Animation loop (keeps eased scales smoothly converging even when no new points)
+  let animLoopId = null;
+  function startAnimLoop() {
+    if (animLoopId) return;
+    const tick = () => {
+      if (pendingDraw.hasData) drawAll();
+      animLoopId = requestAnimationFrame(tick);
+    };
+    animLoopId = requestAnimationFrame(tick);
+  }
+  function stopAnimLoop() {
+    if (animLoopId) cancelAnimationFrame(animLoopId);
+    animLoopId = null;
+  }
+
+  // --- Grading ---
+  function bufferbloatGrade(idleMs, loadedMs) {
+    if (!isFinite(idleMs) || !isFinite(loadedMs)) return null;
+    const d = Math.max(0, loadedMs - idleMs);
+    if (d < 25) return { grade: 'A', delta: d, label: 'Imperceptible' };
+    if (d < 100) return { grade: 'B', delta: d, label: 'Minor' };
+    if (d < 400) return { grade: 'C', delta: d, label: 'Noticeable' };
+    return { grade: 'D', delta: d, label: 'Severe' };
+  }
+  function bloatDesc(grade, idle, loaded) {
+    const d = Math.round(loaded - idle);
+    switch (grade) {
+      case 'A': return `Latency stays close to idle under load. Video calls and gaming unaffected.`;
+      case 'B': return `Latency rose by ~${d}ms under load. Minor impact on real-time traffic.`;
+      case 'C': return `Latency rose from ${Math.round(idle)}ms at rest to ${Math.round(loaded)}ms under load. Calls and gaming may stutter when the link is saturated.`;
+      case 'D': return `Latency ballooned by ~${d}ms under load. Real-time applications will suffer noticeably.`;
+    }
+    return '';
+  }
+  function overallGrade({ downMbps, upMbps, latencyMs, bloatGrade }) {
+    if (downMbps == null || latencyMs == null) return null;
+    let s = 0;
+    if (downMbps >= 500) s += 4;
+    else if (downMbps >= 200) s += 3;
+    else if (downMbps >= 50) s += 2;
+    else if (downMbps >= 15) s += 1;
+    if (upMbps >= 100) s += 2;
+    else if (upMbps >= 20) s += 1;
+    if (latencyMs < 20) s += 2;
+    else if (latencyMs < 50) s += 1;
+    else if (latencyMs > 120) s -= 1;
+    if (bloatGrade === 'A') s += 1;
+    else if (bloatGrade === 'C') s -= 1;
+    else if (bloatGrade === 'D') s -= 2;
+    if (s >= 7) return 'Excellent';
+    if (s >= 4) return 'Good';
+    if (s >= 2) return 'Fair';
+    return 'Poor';
+  }
+  function verdictHint(label) {
+    switch (label) {
+      case 'Excellent': return '8K · heavy multi-user · everything';
+      case 'Good': return '4K · calls · most gaming';
+      case 'Fair': return 'HD · browsing · light calls';
+      case 'Poor': return 'SD video · basic browsing';
+    }
+    return '';
+  }
+
+  // --- Storage ---
+  const STORE_KEY = 'netpulse.history.v1';
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function saveHistory(list) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0, 100))); } catch {}
+  }
+  function recordResult(entry) {
+    const list = loadHistory();
+    list.unshift(entry);
+    saveHistory(list);
+    updateHistoryBadge();
+  }
+  function updateHistoryBadge() {
+    const list = loadHistory();
+    $('historyCount').textContent = list.length;
+  }
+
+  // --- History modal ---
+  function renderHistory() {
+    const list = loadHistory();
+    const wrap = $('historyList');
+    if (!list.length) {
+      wrap.innerHTML = `<div class="history-empty">NO TESTS RECORDED YET</div>`;
+      return;
+    }
+    wrap.innerHTML = list.map(e => {
+      const d = new Date(e.ts);
+      return `
+        <div class="history-row">
+          <div class="time">
+            ${escapeHtml(fmtDate(d))} · ${fmtTime(d)}
+            <small>${fmtRelative(e.ts)}</small>
+          </div>
+          <div class="num">${fmtBw(e.down)}<small>MBPS</small></div>
+          <div class="num">${fmtBw(e.up)}<small>MBPS</small></div>
+          <div class="num">${fmt(e.idle, 0)}<small>MS</small></div>
+          <div><span class="bb bb-${e.bloat || 'A'}">${e.bloat || '—'}</span></div>
+          <div class="vv vv-${e.overall || 'Pending'}">${e.overall || '—'}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  function openHistory() {
+    renderHistory();
+    $('historyModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeHistory() {
+    $('historyModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function clearHistory() {
+    if (!confirm('Clear all test history from this browser?')) return;
+    localStorage.removeItem(STORE_KEY);
+    updateHistoryBadge();
+    renderHistory();
+  }
+
+  // --- Test lifecycle ---
+  let running = false;
+  let startTime = 0;
+  let currentStage = 'idle';
+
+  function resetUI() {
+    $('heroValue').textContent = '0.0';
+    $('sDown').textContent = '0.0';
+    $('sUp').textContent = '0.0';
+    $('sIdle').textContent = '0.0';
+    $('sJitter').textContent = '0.0';
+    $('sLdown').textContent = '0';
+    $('sLup').textContent = '0';
+    $('statLdown').classList.remove('alert');
+    $('statLup').classList.remove('alert');
+
+    const badge = $('bloatBadge');
+    badge.className = 'bloat-badge bb-A';
+    badge.innerHTML = '&ndash;';
+    $('bloatTitle').innerHTML = 'Bufferbloat: <em>awaiting test</em>';
+    $('bloatDesc').textContent = 'Run the test to measure delay under load.';
+    const vv = $('verdictValue');
+    vv.className = 'v vv-Pending';
+    vv.textContent = 'Measuring';
+    $('verdictHint').innerHTML = '&nbsp;';
+    $('heroTs').innerHTML = '&nbsp;';
+
+    scale.lat.max = 0; scale.down.max = 0; scale.up.max = 0;
+    pendingDraw = { lat: [], down: [], up: [], hasData: false };
+    drawAll();
+  }
+
+  function setStage(stageLabel, live = true) {
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const sub = $('heroSub');
+    sub.className = 'sub' + (live ? ' live' : '');
+    sub.innerHTML = `${stageLabel} <span class="dot"></span> ${elapsed} S`;
+  }
+  function tickStage() {
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const sub = $('heroSub');
+    const current = ({
+      latency: 'MEASURING LATENCY',
+      download: 'MEASURING DOWNLOAD',
+      upload: 'MEASURING UPLOAD',
+    })[currentStage] || 'MEASURING';
+    sub.innerHTML = `${current} <span class="dot"></span> ${elapsed} S`;
+  }
+
+  let timerId = null;
+  function startTimer() {
+    stopTimer();
+    timerId = setInterval(tickStage, 500);
+  }
+  function stopTimer() {
+    if (timerId) clearInterval(timerId);
+    timerId = null;
+  }
+
+  async function runTest() {
+    if (running) return;
+    running = true;
+    startTime = Date.now();
+    currentStage = 'latency';
+    $('runBtn').disabled = true;
+    $('runBtn').textContent = 'RUNNING';
+    resetUI();
+    setStage('MEASURING LATENCY', true);
+    startTimer();
+    startAnimLoop();
+
+    const engine = new SpeedTest({
+      autoStart: false,
+      measurements: [
+        { type: 'latency', numPackets: 20 },
+        { type: 'download', bytes: 1e5, count: 1, bypassMinDuration: true },
+        { type: 'latency', numPackets: 20 },
+        { type: 'download', bytes: 1e5, count: 9 },
+        { type: 'download', bytes: 1e6, count: 8 },
+        { type: 'download', bytes: 1e7, count: 6 },
+        { type: 'download', bytes: 2.5e7, count: 4 },
+        { type: 'upload', bytes: 1e5, count: 8 },
+        { type: 'upload', bytes: 1e6, count: 6 },
+        { type: 'upload', bytes: 1e7, count: 4 },
+      ],
+    });
+
+    function detectStage(r) {
+      const dlPts = (r.getDownloadBandwidthPoints?.() || []).filter(p => isFinite(pv(p)) && pv(p) > 0).length;
+      const ulPts = (r.getUploadBandwidthPoints?.() || []).filter(p => isFinite(pv(p)) && pv(p) > 0).length;
+      let s = 'latency';
+      if (ulPts > 0) s = 'upload';
+      else if (dlPts > 2) s = 'download';
+      if (s !== currentStage) {
+        currentStage = s;
+        tickStage();
+      }
+    }
+
+    engine.onResultsChange = () => {
+      const r = engine.results;
+      updateStats(r);
+      pendingDraw.lat = r.getUnloadedLatencyPoints?.() || [];
+      pendingDraw.down = r.getDownloadBandwidthPoints?.() || [];
+      pendingDraw.up = r.getUploadBandwidthPoints?.() || [];
+      pendingDraw.hasData = true;
+      detectStage(r);
+    };
+    engine.onRunningChange = (isRunning) => { if (!isRunning) finish(engine.results); };
+    engine.onFinish = (results) => finish(results);
+    engine.onError = (err) => {
+      stopTimer();
+      stopAnimLoop();
+      const sub = $('heroSub');
+      sub.className = 'sub';
+      sub.innerHTML = `ERROR <span class="dot"></span> ${escapeHtml(err?.message || String(err)).slice(0, 60)}`;
+      $('runBtn').disabled = false;
+      $('runBtn').textContent = 'RUN TEST';
+      running = false;
+    };
+
+    engine.play();
+  }
+
+  function updateStats(results) {
+    if (!results) return;
+    const idleLat = results.getUnloadedLatency?.();
+    const jitter = results.getUnloadedJitter?.();
+    const down = results.getDownloadBandwidth?.();
+    const up = results.getUploadBandwidth?.();
+    const loadedDown = results.getDownLoadedLatency?.();
+    const loadedUp = results.getUpLoadedLatency?.();
+
+    if (isFinite(down)) {
+      const s = fmtBw(down);
+      $('heroValue').textContent = s;
+      $('sDown').textContent = s;
+    }
+    if (isFinite(up)) $('sUp').textContent = fmtBw(up);
+    if (isFinite(idleLat)) $('sIdle').textContent = fmt(idleLat);
+    if (isFinite(jitter)) $('sJitter').textContent = fmt(jitter);
+    if (isFinite(loadedDown)) $('sLdown').textContent = Math.round(loadedDown);
+    if (isFinite(loadedUp)) $('sLup').textContent = Math.round(loadedUp);
+
+    const worst = Math.max(loadedDown ?? 0, loadedUp ?? 0);
+    const bl = bufferbloatGrade(idleLat, worst || NaN);
+    if (bl) {
+      applyBloat(bl, idleLat, worst);
+      $('statLdown').classList.toggle('alert', isFinite(loadedDown) && (loadedDown - idleLat) >= 25);
+      $('statLup').classList.toggle('alert', isFinite(loadedUp) && (loadedUp - idleLat) >= 25);
+    }
+  }
+
+  function applyBloat(bl, idle, loaded) {
+    const badge = $('bloatBadge');
+    badge.className = 'bloat-badge bb-' + bl.grade;
+    badge.textContent = bl.grade;
+    $('bloatTitle').innerHTML = `Bufferbloat: Grade ${bl.grade} <em>· ${bl.label}</em>`;
+    $('bloatDesc').textContent = bloatDesc(bl.grade, idle, loaded);
+  }
+
+  function finish(results) {
+    if (!running) return;
+    running = false;
+    stopTimer();
+    stopAnimLoop();
+    const endDate = new Date();
+    const totalSec = Math.round((endDate.getTime() - startTime) / 1000);
+    $('runBtn').disabled = false;
+    $('runBtn').textContent = 'RUN AGAIN';
+
+    const sub = $('heroSub');
+    sub.className = 'sub';
+    sub.innerHTML = `COMPLETED <span class="dot"></span> ${fmtTime(endDate)} <span class="dot"></span> ${totalSec} S`;
+    $('heroTs').textContent = fmtDate(endDate).replace(/ /g, ' ');
+
+    updateStats(results);
+    drawAll();
+
+    if (!results) return;
+    const down = (results.getDownloadBandwidth?.() ?? 0) / 1e6;
+    const up = (results.getUploadBandwidth?.() ?? 0) / 1e6;
+    const lat = results.getUnloadedLatency?.();
+    const loadedDown = results.getDownLoadedLatency?.();
+    const loadedUp = results.getUpLoadedLatency?.();
+    const worst = Math.max(loadedDown ?? 0, loadedUp ?? 0);
+    const bl = bufferbloatGrade(lat, worst || NaN);
+    if (bl) applyBloat(bl, lat, worst);
+
+    const label = overallGrade({ downMbps: down, upMbps: up, latencyMs: lat, bloatGrade: bl?.grade });
+    if (label) {
+      const vv = $('verdictValue');
+      vv.className = 'v vv-' + label;
+      vv.textContent = label;
+      $('verdictHint').textContent = verdictHint(label);
+    }
+
+    // Record to history
+    recordResult({
+      ts: endDate.getTime(),
+      duration: totalSec,
+      down: results.getDownloadBandwidth?.() ?? 0,
+      up: results.getUploadBandwidth?.() ?? 0,
+      idle: lat ?? null,
+      jitter: results.getUnloadedJitter?.() ?? null,
+      loadedDown: loadedDown ?? null,
+      loadedUp: loadedUp ?? null,
+      bloat: bl?.grade ?? null,
+      bloatDelta: bl?.delta ?? null,
+      overall: label ?? null,
+      colo: currentMeta?.colo ?? null,
+      isp: currentMeta?.asOrganization ?? null,
+    });
+  }
+
+  // --- Wire up ---
+  [$('latChart'), $('downChart'), $('upChart')].forEach(observeCanvas);
+  $('runBtn').addEventListener('click', runTest);
+  $('historyBtn').addEventListener('click', openHistory);
+  $('historyClose').addEventListener('click', closeHistory);
+  $('historyClear').addEventListener('click', clearHistory);
+  $('historyModal').addEventListener('click', (e) => {
+    if (e.target === $('historyModal')) closeHistory();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('historyModal').classList.contains('open')) closeHistory();
+  });
+
+  loadMeta();
+  updateHistoryBadge();
+  resetUI();
+</script>
+</body>
+</html>

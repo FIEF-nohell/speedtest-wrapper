@@ -62,10 +62,22 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
   .wrap {
     max-width: 1180px;
     margin: 0 auto;
     padding: 20px 28px 40px;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .bottom-anchor {
+    margin-top: auto;
+    padding-top: 28px;
   }
 
   /* Top bar */
@@ -202,7 +214,7 @@
   /* Stats strip */
   .stats {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     border-top: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
   }
@@ -242,14 +254,9 @@
   }
   .stat.alert .k, .stat.alert .v { color: var(--orange); }
   .stat.alert .u { color: var(--orange-dim); }
-  @media (max-width: 820px) {
-    .stats { grid-template-columns: repeat(3, 1fr); }
-    .stat { border-bottom: 1px solid var(--rule); }
-    .stat:nth-child(3n) { border-right: 0; }
-  }
-  @media (max-width: 520px) {
+  @media (max-width: 640px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
-    .stat:nth-child(3n) { border-right: 1px solid var(--rule); }
+    .stat { border-bottom: 1px solid var(--rule); }
     .stat:nth-child(2n) { border-right: 0; }
   }
 
@@ -345,6 +352,28 @@
   .meta-cell .k { font-size: 10px; letter-spacing: 0.24em; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
   .meta-cell .v { font-size: 12px; color: var(--ink-2); font-weight: 500; }
   .meta-cell .v.err { color: var(--red); font-weight: 400; }
+  .meta-cell .v.redactable {
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color .15s;
+  }
+  .meta-cell .v.redactable:hover { color: var(--orange); }
+  .meta-cell .v.redactable::after {
+    content: "SHOW";
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    color: var(--muted-2);
+    border: 1px solid var(--rule-2);
+    padding: 2px 5px;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+  .meta-cell .v.redactable.revealed::after {
+    content: "HIDE";
+  }
   @media (max-width: 820px) { .meta-row { grid-template-columns: repeat(2, 1fr); gap: 14px 0; } }
   @media (max-width: 420px) { .meta-row { grid-template-columns: 1fr; gap: 12px; } }
 
@@ -557,14 +586,6 @@
       <div class="k">JITTER</div>
       <div><span class="v" id="sJitter">0.0</span><span class="u">MS</span></div>
     </div>
-    <div class="stat" id="statLdown">
-      <div class="k"><span class="glyph">&darr;</span>LOADED PING</div>
-      <div><span class="v" id="sLdown">0</span><span class="u">MS</span></div>
-    </div>
-    <div class="stat" id="statLup">
-      <div class="k"><span class="glyph">&uarr;</span>LOADED PING</div>
-      <div><span class="v" id="sLup">0</span><span class="u">MS</span></div>
-    </div>
   </div>
 
   <div class="charts">
@@ -581,6 +602,8 @@
       <canvas class="chart" id="upChart"></canvas>
     </div>
   </div>
+
+  <div class="bottom-anchor">
 
   <div class="verdict-row">
     <div class="bloat-cell">
@@ -620,6 +643,8 @@
     Measures throughput to Cloudflare's edge network. Results reflect the path to the nearest colo, not the whole internet.
     Library: <a href="https://github.com/cloudflare/speedtest" target="_blank" rel="noopener">@cloudflare/speedtest</a>.
     Bufferbloat thresholds per <a href="https://www.waveform.com/tools/bufferbloat" target="_blank" rel="noopener">Waveform</a>.
+  </div>
+
   </div>
 
 </div>
@@ -716,15 +741,51 @@
 
   // --- Meta fetch ---
   let currentMeta = null;
+
+  function extractColoCode(raw) {
+    if (!raw) return '';
+    if (typeof raw === 'string') return raw.trim();
+    if (typeof raw === 'object') {
+      return String(raw.iata || raw.code || raw.name || '').trim();
+    }
+    return String(raw).trim();
+  }
+
+  function maskIp(ip) {
+    if (!ip || typeof ip !== 'string') return '—';
+    if (ip.includes(':')) {
+      const parts = ip.split(':');
+      return parts.slice(0, 3).join(':') + ':····:····:····:····';
+    }
+    const parts = ip.split('.');
+    if (parts.length !== 4) return '···.···.···.···';
+    return `${parts[0]}.${parts[1]}.···.···`;
+  }
+
+  function setIp(ip) {
+    const el = $('metaIp');
+    if (!ip) {
+      el.textContent = '—';
+      el.classList.remove('redactable', 'revealed');
+      el.removeAttribute('data-full');
+      return;
+    }
+    el.classList.add('redactable');
+    el.classList.remove('revealed');
+    el.setAttribute('data-full', ip);
+    el.textContent = maskIp(ip);
+  }
+
   async function loadMeta() {
     try {
       const r = await fetch('https://speed.cloudflare.com/meta', { cache: 'no-store' });
       if (!r.ok) throw new Error('meta ' + r.status);
       const m = await r.json();
       currentMeta = m;
-      const coloCity = COLO[m.colo] || '';
-      $('metaServer').textContent = coloCity ? `${coloCity} · ${m.colo}` : (m.colo || '—');
-      $('metaIp').textContent = m.clientIp || '—';
+      const code = extractColoCode(m.colo);
+      const coloCity = COLO[code] || '';
+      $('metaServer').textContent = coloCity ? `${coloCity} · ${code}` : (code || '—');
+      setIp(m.clientIp);
       $('metaIsp').textContent = [m.asOrganization || 'Unknown', m.asn ? `AS${m.asn}` : ''].filter(Boolean).join(' · ');
       $('metaLoc').textContent = [m.city, m.region, m.country].filter(Boolean).join(', ') || '—';
       return;
@@ -739,9 +800,10 @@
           if (i > 0) kv[line.slice(0, i).trim()] = line.slice(i + 1).trim();
         });
         currentMeta = { clientIp: kv.ip, colo: kv.colo, country: kv.loc };
-        const coloCity = COLO[kv.colo] || '';
-        $('metaServer').textContent = coloCity ? `${coloCity} · ${kv.colo}` : (kv.colo || '—');
-        $('metaIp').textContent = kv.ip || '—';
+        const code = extractColoCode(kv.colo);
+        const coloCity = COLO[code] || '';
+        $('metaServer').textContent = coloCity ? `${coloCity} · ${code}` : (code || '—');
+        setIp(kv.ip);
         $('metaIsp').textContent = '—';
         $('metaLoc').textContent = kv.loc || '—';
       } catch {
@@ -1036,11 +1098,6 @@
     $('sUp').textContent = '0.0';
     $('sIdle').textContent = '0.0';
     $('sJitter').textContent = '0.0';
-    $('sLdown').textContent = '0';
-    $('sLup').textContent = '0';
-    $('statLdown').classList.remove('alert');
-    $('statLup').classList.remove('alert');
-
     const badge = $('bloatBadge');
     badge.className = 'bloat-badge bb-A';
     badge.innerHTML = '&ndash;';
@@ -1106,9 +1163,13 @@
         { type: 'download', bytes: 1e6, count: 8 },
         { type: 'download', bytes: 1e7, count: 6 },
         { type: 'download', bytes: 2.5e7, count: 4 },
+        { type: 'download', bytes: 1e8, count: 3 },
+        { type: 'download', bytes: 2.5e8, count: 2 },
         { type: 'upload', bytes: 1e5, count: 8 },
         { type: 'upload', bytes: 1e6, count: 6 },
         { type: 'upload', bytes: 1e7, count: 4 },
+        { type: 'upload', bytes: 2.5e7, count: 4 },
+        { type: 'upload', bytes: 5e7, count: 3 },
       ],
     });
 
@@ -1166,16 +1227,9 @@
     if (isFinite(up)) $('sUp').textContent = fmtBw(up);
     if (isFinite(idleLat)) $('sIdle').textContent = fmt(idleLat);
     if (isFinite(jitter)) $('sJitter').textContent = fmt(jitter);
-    if (isFinite(loadedDown)) $('sLdown').textContent = Math.round(loadedDown);
-    if (isFinite(loadedUp)) $('sLup').textContent = Math.round(loadedUp);
-
     const worst = Math.max(loadedDown ?? 0, loadedUp ?? 0);
     const bl = bufferbloatGrade(idleLat, worst || NaN);
-    if (bl) {
-      applyBloat(bl, idleLat, worst);
-      $('statLdown').classList.toggle('alert', isFinite(loadedDown) && (loadedDown - idleLat) >= 25);
-      $('statLup').classList.toggle('alert', isFinite(loadedUp) && (loadedUp - idleLat) >= 25);
-    }
+    if (bl) applyBloat(bl, idleLat, worst);
   }
 
   function applyBloat(bl, idle, loaded) {
@@ -1251,6 +1305,18 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && $('historyModal').classList.contains('open')) closeHistory();
+  });
+  $('metaIp').addEventListener('click', () => {
+    const el = $('metaIp');
+    const full = el.getAttribute('data-full');
+    if (!full) return;
+    if (el.classList.contains('revealed')) {
+      el.classList.remove('revealed');
+      el.textContent = maskIp(full);
+    } else {
+      el.classList.add('revealed');
+      el.textContent = full;
+    }
   });
 
   loadMeta();

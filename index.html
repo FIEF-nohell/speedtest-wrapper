@@ -165,6 +165,42 @@
     background: rgba(216,87,87,0.08);
   }
 
+  /* Top split: hero + stats side-by-side */
+  .top-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .top-split .hero {
+    border-right: 1px solid var(--rule);
+    padding: 40px 24px;
+  }
+  .top-split .hero .num { font-size: 128px; }
+  .top-split .hero .num .unit { font-size: 24px; }
+  .top-split .hero .rule { margin: 26px auto 14px; }
+  .top-split .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .top-split .stats .stat {
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .top-split .stats .stat:nth-child(2n) { border-right: 0; }
+  .top-split .stats .stat:nth-child(n+3) { border-bottom: 0; }
+  @media (max-width: 820px) {
+    .top-split { grid-template-columns: 1fr; }
+    .top-split .hero { border-right: 0; border-bottom: 1px solid var(--rule); padding: 32px 16px; }
+    .top-split .hero .num { font-size: 96px; }
+  }
+
   /* Hero */
   .hero {
     text-align: center;
@@ -254,8 +290,12 @@
   }
   .stat .k .glyph {
     margin-right: 4px;
-    opacity: 0.8;
+    opacity: 0.9;
   }
+  .stat[data-stat="down"] .k { color: #88c9a0; }
+  .stat[data-stat="down"] .k .glyph { color: #88c9a0; }
+  .stat[data-stat="up"] .k { color: #d9b56a; }
+  .stat[data-stat="up"] .k .glyph { color: #d9b56a; }
   .stat .v {
     font-family: var(--cond);
     font-size: 30px;
@@ -274,11 +314,6 @@
   }
   .stat.alert .k, .stat.alert .v { color: var(--orange); }
   .stat.alert .u { color: var(--orange-dim); }
-  @media (max-width: 640px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .stat { border-bottom: 1px solid var(--rule); }
-    .stat:nth-child(2n) { border-right: 0; }
-  }
 
   /* Charts */
   .charts {
@@ -309,8 +344,9 @@
     .chart-cell:last-child { border-bottom: 0; }
   }
 
-  /* Verdict strip */
-  .verdict-row {
+  /* Verdict strip - hidden for now, keep logic intact */
+  .verdict-row { display: none; }
+  .verdict-row-on {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 28px;
@@ -606,30 +642,32 @@
     </div>
   </div>
 
-  <div class="hero">
-    <div class="label">DOWNLOAD</div>
-    <div class="num"><span id="heroValue">0.0</span><span class="unit">MBPS</span></div>
-    <div class="rule"></div>
-    <div class="sub" id="heroSub">READY <span class="dot"></span> PRESS RUN TEST</div>
-    <div class="ts" id="heroTs">&nbsp;</div>
-  </div>
+  <div class="top-split">
+    <div class="hero">
+      <div class="label">DOWNLOAD</div>
+      <div class="num"><span id="heroValue">0.0</span><span class="unit">MBPS</span></div>
+      <div class="rule"></div>
+      <div class="sub" id="heroSub">READY <span class="dot"></span> PRESS RUN TEST</div>
+      <div class="ts" id="heroTs">&nbsp;</div>
+    </div>
 
-  <div class="stats" id="statsStrip">
-    <div class="stat" data-stat="down">
-      <div class="k"><span class="glyph">&darr;</span>DOWNLOAD</div>
-      <div><span class="v" id="sDown">0.0</span><span class="u">MBPS</span></div>
-    </div>
-    <div class="stat" data-stat="up">
-      <div class="k"><span class="glyph">&uarr;</span>UPLOAD</div>
-      <div><span class="v" id="sUp">0.0</span><span class="u">MBPS</span></div>
-    </div>
-    <div class="stat" data-stat="idle">
-      <div class="k">IDLE PING</div>
-      <div><span class="v" id="sIdle">0.0</span><span class="u">MS</span></div>
-    </div>
-    <div class="stat" data-stat="jitter">
-      <div class="k">JITTER</div>
-      <div><span class="v" id="sJitter">0.0</span><span class="u">MS</span></div>
+    <div class="stats" id="statsStrip">
+      <div class="stat" data-stat="down">
+        <div class="k"><span class="glyph">&darr;</span>DOWNLOAD</div>
+        <div><span class="v" id="sDown">0.0</span><span class="u">MBPS</span></div>
+      </div>
+      <div class="stat" data-stat="up">
+        <div class="k"><span class="glyph">&uarr;</span>UPLOAD</div>
+        <div><span class="v" id="sUp">0.0</span><span class="u">MBPS</span></div>
+      </div>
+      <div class="stat" data-stat="idle">
+        <div class="k">IDLE PING</div>
+        <div><span class="v" id="sIdle">0.0</span><span class="u">MS</span></div>
+      </div>
+      <div class="stat" data-stat="jitter">
+        <div class="k">JITTER</div>
+        <div><span class="v" id="sJitter">0.0</span><span class="u">MS</span></div>
+      </div>
     </div>
   </div>
 
@@ -974,7 +1012,7 @@
       const median = sorted[Math.floor(sorted.length / 2)];
       const medY = yAt(median);
       ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.32)';
       ctx.setLineDash([3, 4]);
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -982,12 +1020,29 @@
       ctx.lineTo(w, medY + 0.5);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'bottom';
-      const label = (opts.medianFmt || ((v) => v.toFixed(0)))(median);
-      ctx.fillText(`MEDIAN ${label}`, w - 4, medY - 3);
+
+      const labelFmt = opts.medianFmt || ((v) => v.toFixed(0));
+      const labelText = `MEDIAN ${labelFmt(median)}`;
+      ctx.font = '600 10px ' + getComputedStyle(document.body).fontFamily;
+      const tw = ctx.measureText(labelText).width;
+      const padX = 6, padY = 3;
+      const boxH = 14;
+      const boxW = tw + padX * 2;
+      const boxX = w - boxW - 4;
+      const boxY = Math.max(2, medY - boxH - 1);
+
+      ctx.fillStyle = 'rgba(11,11,11,0.85)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.rect(boxX, boxY, boxW, boxH);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.78)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, boxX + padX, boxY + boxH / 2 + 0.5);
       ctx.restore();
     }
   }
@@ -1071,15 +1126,15 @@
       medianFmt: (v) => v.toFixed(0) + 'MS',
     });
     drawChart($('downChart'), decimate(pendingDraw.down), {
-      stroke: '#e6e6e6',
-      fill: 'rgba(230,230,230,0.09)',
+      stroke: '#88c9a0',
+      fill: 'rgba(136,201,160,0.12)',
       scaleKey: 'down',
       minScale: 1e7,
       tension: 0.5,
     });
     drawChart($('upChart'), decimate(pendingDraw.up), {
-      stroke: '#e6e6e6',
-      fill: 'rgba(230,230,230,0.09)',
+      stroke: '#d9b56a',
+      fill: 'rgba(217,181,106,0.12)',
       scaleKey: 'up',
       minScale: 1e7,
       tension: 0.5,
